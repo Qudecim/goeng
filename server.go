@@ -16,5 +16,5 @@ func Main() {
 
 	router.POST("/api/word/:id", service.addWord)
 
-	router.Run("localhost:8080")
+	router.Run(":8080")
 }
