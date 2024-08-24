@@ -19,5 +19,6 @@ func Main() {
 
 	router.POST("/api/word/:id", service.addWord)
 
-	router.RunTLS(":443", "server.pem", "server.key")
+	router.Run(":80")
+	//router.RunTLS(":443", "server.pem", "server.key")
 }
