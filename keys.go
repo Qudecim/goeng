@@ -2,6 +2,18 @@ package goeng
 
 import "strconv"
 
+func KeyUser(userId int64) string {
+	return "user_" + strconv.FormatInt(userId, 10)
+}
+
+func KeyUserMatch(userName string) string {
+	return "user_math_" + userName
+}
+
+func KeyUserIncrement() string {
+	return "user_increment"
+}
+
 func KeyDictIncrement(user_id int) string {
 	return "dict_increment_" + strconv.Itoa(user_id)
 }

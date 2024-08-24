@@ -10,23 +10,89 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type service struct {
-	app *ipmc.App
+type Service struct {
+	app    *ipmc.App
+	config *Config
 }
 
-func newService() *service {
-	config := ipmc.NewConfig("binlog/", 1e5, "snapshot/")
-	app := ipmc.NewApp(config)
+func newService(config *Config) *Service {
+
+	app := ipmc.NewApp(ipmc.NewConfig("binlog/", 1e5, "snapshot/"))
 	app.Init()
 
-	return &service{app}
+	return &Service{app, config}
 }
 
-func (s *service) getUserId(c *gin.Context) int {
+func (s *Service) getUserId(c *gin.Context) int {
 	return 1
 }
 
-func (s *service) createDict(c *gin.Context) {
+func (s *Service) signUp(c *gin.Context) {
+	s.app.NewConnection()
+
+	var dtoUser DtoUser
+	if err := c.BindJSON(&dtoUser); err != nil {
+		return
+	}
+
+	_, success := s.app.Get(KeyUserMatch(dtoUser.userName))
+	if success {
+		// exist
+		return
+	}
+
+	userId, _ := s.app.Increment(KeyUserIncrement())
+	salt := randStringRunes(5)
+	user := User{ID: userId, userName: dtoUser.userName, passwordHash: makePasswordHash(dtoUser.password, salt), salt: salt}
+	user_json, _ := json.Marshal(user)
+	s.app.Set(KeyUser(userId), string(user_json))
+
+	token, _ := jwtEncrypt(s.config.secretKey, userId)
+	c.SetCookie("auth_token", token, 3600, "/", s.config.coockieHost, false, true)
+
+	s.app.CloseConnection()
+}
+
+func (s *Service) signIn(c *gin.Context) {
+	s.app.NewConnection()
+
+	var dtoUser DtoUser
+	if err := c.BindJSON(&dtoUser); err != nil {
+		return
+	}
+
+	userIdDb, success := s.app.Get(KeyUserMatch(dtoUser.userName))
+	if !success {
+		// not exist
+		return
+	}
+
+	usrId, _ := strconv.ParseInt(userIdDb, 10, 64)
+	userJson, success := s.app.Get(KeyUser(usrId))
+	if !success {
+		// not exist
+		return
+	}
+
+	var user User
+	err := json.Unmarshal([]byte(userJson), &user)
+	if err != nil {
+		// todo
+		return
+	}
+
+	if user.passwordHash != makePasswordHash(dtoUser.password, user.salt) {
+		// todo
+		return
+	}
+
+	token, _ := jwtEncrypt(s.config.secretKey, usrId)
+	c.SetCookie("auth_token", token, 3600, "/", s.config.coockieHost, false, true)
+
+	s.app.CloseConnection()
+}
+
+func (s *Service) createDict(c *gin.Context) {
 	var newDict Dict
 
 	s.app.NewConnection()
@@ -49,7 +115,7 @@ func (s *service) createDict(c *gin.Context) {
 	s.app.CloseConnection()
 }
 
-func (s *service) getDict(c *gin.Context) {
+func (s *Service) getDict(c *gin.Context) {
 	user_id := s.getUserId(c)
 	s.app.NewConnection()
 
@@ -72,7 +138,7 @@ func (s *service) getDict(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, words)
 }
 
-func (s *service) getDictList(c *gin.Context) {
+func (s *Service) getDictList(c *gin.Context) {
 	user_id := s.getUserId(c)
 	s.app.NewConnection()
 
@@ -90,7 +156,7 @@ func (s *service) getDictList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, dicts)
 }
 
-func (s *service) addWord(c *gin.Context) {
+func (s *Service) addWord(c *gin.Context) {
 	s.app.NewConnection()
 
 	dict_id, err := strconv.ParseInt(c.Param("id"), 10, 64)
