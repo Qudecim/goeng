@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/Qudecim/ipmc"
 	"github.com/gin-gonic/gin"
@@ -63,22 +64,24 @@ func (s *Service) signUp(c *gin.Context) {
 
 	var dtoUser DtoUser
 	if err := c.BindJSON(&dtoUser); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, nil)
+		s.respError(c, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
-	_, success := s.app.Get(KeyUserMatch(dtoUser.UserName))
+	user_name := strings.ToLower(dtoUser.UserName)
+
+	_, success := s.app.Get(KeyUserMatch(user_name))
 	if success {
-		c.IndentedJSON(http.StatusNotAcceptable, nil)
+		s.respError(c, http.StatusNotAcceptable, "User name alredy used")
 		return
 	}
 
 	userId, _ := s.app.Increment(KeyUserIncrement())
 	salt := randStringRunes(5)
-	user := User{ID: userId, UserName: dtoUser.UserName, PasswordHash: makePasswordHash(dtoUser.Password, salt), Salt: salt}
+	user := User{ID: userId, UserName: user_name, PasswordHash: makePasswordHash(dtoUser.Password, salt), Salt: salt}
 	user_json, _ := json.Marshal(user)
 	s.app.Set(KeyUser(userId), string(user_json))
-	s.app.Set(KeyUserMatch(dtoUser.UserName), strconv.FormatInt(userId, 10))
+	s.app.Set(KeyUserMatch(user_name), strconv.FormatInt(userId, 10))
 
 	token, _ := jwtEncrypt(s.config.SecretKey, userId)
 	c.SetCookie("auth_token", token, 3600, "/", s.config.CoockieHost, false, true)
@@ -96,7 +99,9 @@ func (s *Service) signIn(c *gin.Context) {
 		return
 	}
 
-	userIdDb, success := s.app.Get(KeyUserMatch(dtoUser.UserName))
+	user_name := strings.ToLower(dtoUser.UserName)
+
+	userIdDb, success := s.app.Get(KeyUserMatch(user_name))
 	if !success {
 		s.respError(c, http.StatusNotAcceptable, "incorrect username or password")
 		return
@@ -134,6 +139,7 @@ func (s *Service) createDict(c *gin.Context) {
 	s.app.NewConnection()
 
 	if err := c.BindJSON(&newDict); err != nil {
+		s.respError(c, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
