@@ -2,6 +2,7 @@ package goeng
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -28,17 +29,27 @@ func Main() {
 	router := gin.Default()
 
 	router.Static("/assets", "./static/assets")
-	router.StaticFile("/", "./static/index.html")
 
-	router.GET("/api/auth", service.auth)
-	router.POST("/api/sign_in", service.signIn)
-	router.POST("/api/sign_up", service.signUp)
+	router.LoadHTMLFiles("./static/index.html")
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	})
+	router.GET("/web/*url", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	})
 
-	router.GET("/api/dict", service.getDictList)
-	router.POST("/api/dict", service.createDict)
-	router.GET("/api/dict/:id", service.getDict)
+	api := router.Group("/api")
+	{
+		api.GET("/auth", service.auth)
+		api.POST("/sign_in", service.signIn)
+		api.POST("/sign_up", service.signUp)
 
-	router.POST("/api/word/:id", service.addWord)
+		api.GET("/dict", service.getDictList)
+		api.POST("/dict", service.createDict)
+		api.GET("/dict/:id", service.getDict)
+
+		api.POST("/word/:id", service.addWord)
+	}
 
 	if config.Ssl {
 		router.RunTLS(config.Host, config.Certificate, config.CertificateKey)
