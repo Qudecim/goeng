@@ -1,0 +1,6 @@
+ssl: false
+host: "localhost:8080"
+coockie_host: "localhost:8080"
+certificate: ""
+certificate_key: ""
+secret_key: "test_key"

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/Qudecim/ipmc"
@@ -27,30 +28,52 @@ func (s *Service) getUserId(c *gin.Context) int {
 	return 1
 }
 
+func (s *Service) auth(c *gin.Context) {
+	s.app.NewConnection()
+
+	token, err := c.Cookie("auth_token")
+
+	if err != nil {
+		c.IndentedJSON(http.StatusUnauthorized, nil)
+		return
+	}
+
+	_, err = jwtDecrypt(s.config.SecretKey, token)
+	if err != nil {
+		c.IndentedJSON(http.StatusUnauthorized, nil)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, nil)
+}
+
 func (s *Service) signUp(c *gin.Context) {
 	s.app.NewConnection()
 
 	var dtoUser DtoUser
 	if err := c.BindJSON(&dtoUser); err != nil {
+		c.IndentedJSON(http.StatusBadRequest, nil)
 		return
 	}
 
-	_, success := s.app.Get(KeyUserMatch(dtoUser.userName))
+	_, success := s.app.Get(KeyUserMatch(dtoUser.UserName))
 	if success {
-		// exist
+		c.IndentedJSON(http.StatusNotAcceptable, nil)
 		return
 	}
 
 	userId, _ := s.app.Increment(KeyUserIncrement())
 	salt := randStringRunes(5)
-	user := User{ID: userId, userName: dtoUser.userName, passwordHash: makePasswordHash(dtoUser.password, salt), salt: salt}
+	user := User{ID: userId, UserName: dtoUser.UserName, PasswordHash: makePasswordHash(dtoUser.Password, salt), Salt: salt}
 	user_json, _ := json.Marshal(user)
 	s.app.Set(KeyUser(userId), string(user_json))
+	s.app.Set(KeyUserMatch(dtoUser.UserName), strconv.FormatInt(userId, 10))
 
-	token, _ := jwtEncrypt(s.config.secretKey, userId)
-	c.SetCookie("auth_token", token, 3600, "/", s.config.coockieHost, false, true)
+	token, _ := jwtEncrypt(s.config.SecretKey, userId)
+	c.SetCookie("auth_token", token, 3600, "/", s.config.CoockieHost, false, true)
 
 	s.app.CloseConnection()
+	c.IndentedJSON(http.StatusOK, nil)
 }
 
 func (s *Service) signIn(c *gin.Context) {
@@ -58,38 +81,40 @@ func (s *Service) signIn(c *gin.Context) {
 
 	var dtoUser DtoUser
 	if err := c.BindJSON(&dtoUser); err != nil {
+		s.respError(c, http.StatusBadRequest, "incorrect data")
 		return
 	}
 
-	userIdDb, success := s.app.Get(KeyUserMatch(dtoUser.userName))
+	userIdDb, success := s.app.Get(KeyUserMatch(dtoUser.UserName))
 	if !success {
-		// not exist
+		s.respError(c, http.StatusNotAcceptable, "incorrect username or password")
 		return
 	}
 
 	usrId, _ := strconv.ParseInt(userIdDb, 10, 64)
 	userJson, success := s.app.Get(KeyUser(usrId))
 	if !success {
-		// not exist
+		s.respError(c, http.StatusBadRequest, "internal error")
 		return
 	}
 
 	var user User
 	err := json.Unmarshal([]byte(userJson), &user)
 	if err != nil {
-		// todo
+		s.respError(c, http.StatusBadRequest, "internal error")
 		return
 	}
 
-	if user.passwordHash != makePasswordHash(dtoUser.password, user.salt) {
-		// todo
+	if user.PasswordHash != makePasswordHash(dtoUser.Password, user.Salt) {
+		s.respError(c, http.StatusNotAcceptable, "incorrect password")
 		return
 	}
 
-	token, _ := jwtEncrypt(s.config.secretKey, usrId)
-	c.SetCookie("auth_token", token, 3600, "/", s.config.coockieHost, false, true)
+	token, _ := jwtEncrypt(s.config.SecretKey, usrId)
+	c.SetCookie("auth_token", token, 3600, "/", s.config.CoockieHost, false, true)
 
 	s.app.CloseConnection()
+	c.IndentedJSON(http.StatusOK, nil)
 }
 
 func (s *Service) createDict(c *gin.Context) {
@@ -124,7 +149,7 @@ func (s *Service) getDict(c *gin.Context) {
 		return
 	}
 
-	var words []Word
+	words := []Word{}
 	items, _ := s.app.Pull(KeyWordList(user_id, dict_id))
 	for _, item := range items {
 		word := Word{}
@@ -151,6 +176,10 @@ func (s *Service) getDictList(c *gin.Context) {
 		}
 		dicts = append(dicts, dict)
 	}
+
+	sort.Slice(dicts, func(i, j int) bool {
+		return dicts[i].ID < dicts[j].ID
+	})
 
 	s.app.CloseConnection()
 	c.IndentedJSON(http.StatusOK, dicts)
@@ -180,4 +209,8 @@ func (s *Service) addWord(c *gin.Context) {
 
 	s.app.CloseConnection()
 	c.IndentedJSON(http.StatusOK, "okey")
+}
+
+func (s *Service) respError(c *gin.Context, code int, message string) {
+	c.IndentedJSON(code, DtoError{Code: code, Message: message})
 }

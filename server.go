@@ -9,12 +9,12 @@ import (
 )
 
 type Config struct {
-	ssl            bool   `yaml:"ssl"`
-	host           string `yaml:"host"`
-	coockieHost    string `yaml:"coockie_host"`
-	certificate    string `yaml:"certificate"`
-	certificateKey string `yaml:"certificate_key"`
-	secretKey      string `yaml:"secret_key"`
+	Ssl            bool   `yaml:"ssl"`
+	Host           string `yaml:"host"`
+	CoockieHost    string `yaml:"coockie_host"`
+	Certificate    string `yaml:"certificate"`
+	CertificateKey string `yaml:"certificate_key"`
+	SecretKey      string `yaml:"secret_key"`
 }
 
 func Main() {
@@ -27,22 +27,23 @@ func Main() {
 
 	router := gin.Default()
 
-	router.Static("/static", "./static")
+	router.Static("/assets", "./static/assets")
 	router.StaticFile("/", "./static/index.html")
 
-	router.GET("/api/sign_in", service.signIn)
-	router.GET("/api/sign_up", service.signUp)
+	router.GET("/api/auth", service.auth)
+	router.POST("/api/sign_in", service.signIn)
+	router.POST("/api/sign_up", service.signUp)
 
 	router.GET("/api/dict", service.getDictList)
-	router.GET("/api/dict/:id", service.getDict)
 	router.POST("/api/dict", service.createDict)
+	router.GET("/api/dict/:id", service.getDict)
 
 	router.POST("/api/word/:id", service.addWord)
 
-	if config.ssl {
-		router.RunTLS(config.host, config.certificate, config.certificateKey)
+	if config.Ssl {
+		router.RunTLS(config.Host, config.Certificate, config.CertificateKey)
 	} else {
-		router.Run(config.host)
+		router.Run(config.Host)
 	}
 }
 
@@ -57,6 +58,7 @@ func readConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(config)
 
 	return &config, nil
 }

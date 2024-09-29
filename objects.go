@@ -13,12 +13,18 @@ type Word struct {
 
 type User struct {
 	ID           int64  `json:"id"`
-	userName     string `json:"user_name"`
-	passwordHash string `json:"password_hash"`
-	salt         string `json:"salt"`
+	UserName     string `json:"user_name"`
+	PasswordHash string `json:"password_hash"`
+	Salt         string `json:"salt"`
 }
 
 type DtoUser struct {
-	userName string `json:"user_name"`
-	password string `json:"password"`
+	UserName string `json:"user_name"`
+	Password string `json:"password"`
+}
+
+type DtoError struct {
+	Code    int    `json:"code"`
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }
