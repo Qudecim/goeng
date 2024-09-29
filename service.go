@@ -24,8 +24,19 @@ func newService(config *Config) *Service {
 	return &Service{app, config}
 }
 
-func (s *Service) getUserId(c *gin.Context) int {
-	return 1
+func (s *Service) getUserId(c *gin.Context) (int64, error) {
+
+	cookie, err := c.Cookie("auth_token")
+	if err != nil {
+		return 0, err
+	}
+
+	user_id, err := jwtDecrypt(s.config.SecretKey, cookie)
+	if err != nil {
+		return 0, err
+	}
+
+	return user_id, nil
 }
 
 func (s *Service) auth(c *gin.Context) {
@@ -126,7 +137,11 @@ func (s *Service) createDict(c *gin.Context) {
 		return
 	}
 
-	user_id := s.getUserId(c)
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
 
 	increment, _ := s.app.Increment(KeyDictIncrement(user_id))
 	newDict.ID = increment
@@ -141,7 +156,12 @@ func (s *Service) createDict(c *gin.Context) {
 }
 
 func (s *Service) getDict(c *gin.Context) {
-	user_id := s.getUserId(c)
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
+
 	s.app.NewConnection()
 
 	dict_id, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -164,7 +184,12 @@ func (s *Service) getDict(c *gin.Context) {
 }
 
 func (s *Service) getDictList(c *gin.Context) {
-	user_id := s.getUserId(c)
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
+
 	s.app.NewConnection()
 
 	var dicts []Dict
@@ -194,7 +219,11 @@ func (s *Service) addWord(c *gin.Context) {
 		return
 	}
 
-	user_id := s.getUserId(c)
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
 
 	var newWord Word
 	if err := c.BindJSON(&newWord); err != nil {
