@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Qudecim/ipmc"
 	"github.com/gin-gonic/gin"
@@ -69,6 +70,18 @@ func (s *Service) signUp(c *gin.Context) {
 	}
 
 	user_name := strings.ToLower(dtoUser.UserName)
+	user_name = strings.TrimSpace(user_name)
+	password := strings.TrimSpace(dtoUser.Password)
+
+	if utf8.RuneCountInString(user_name) < 4 {
+		s.respError(c, http.StatusBadRequest, "Username can't be less 4 characters")
+		return
+	}
+
+	if utf8.RuneCountInString(password) < 6 {
+		s.respError(c, http.StatusBadRequest, "Password can't be less 6 characters")
+		return
+	}
 
 	_, success := s.app.Get(KeyUserMatch(user_name))
 	if success {
@@ -78,16 +91,19 @@ func (s *Service) signUp(c *gin.Context) {
 
 	userId, _ := s.app.Increment(KeyUserIncrement())
 	salt := randStringRunes(5)
-	user := User{ID: userId, UserName: user_name, PasswordHash: makePasswordHash(dtoUser.Password, salt), Salt: salt}
+
+	user := User{ID: userId, UserName: user_name, PasswordHash: makePasswordHash(password, salt), Salt: salt}
 	user_json, _ := json.Marshal(user)
 	s.app.Set(KeyUser(userId), string(user_json))
 	s.app.Set(KeyUserMatch(user_name), strconv.FormatInt(userId, 10))
 
 	token, _ := jwtEncrypt(s.config.SecretKey, userId)
-	c.SetCookie("auth_token", token, 3600, "/", s.config.CoockieHost, false, true)
+	c.SetCookie("auth_token", token, 3e7, "/", s.config.CoockieHost, false, true)
 
 	s.app.CloseConnection()
-	c.IndentedJSON(http.StatusOK, nil)
+
+	dtoSuccess := DtoSuccess{true}
+	c.IndentedJSON(http.StatusOK, dtoSuccess)
 }
 
 func (s *Service) signIn(c *gin.Context) {
@@ -100,6 +116,8 @@ func (s *Service) signIn(c *gin.Context) {
 	}
 
 	user_name := strings.ToLower(dtoUser.UserName)
+	user_name = strings.TrimSpace(user_name)
+	password := strings.TrimSpace(dtoUser.Password)
 
 	userIdDb, success := s.app.Get(KeyUserMatch(user_name))
 	if !success {
@@ -121,7 +139,7 @@ func (s *Service) signIn(c *gin.Context) {
 		return
 	}
 
-	if user.PasswordHash != makePasswordHash(dtoUser.Password, user.Salt) {
+	if user.PasswordHash != makePasswordHash(password, user.Salt) {
 		s.respError(c, http.StatusNotAcceptable, "incorrect password")
 		return
 	}
@@ -130,7 +148,9 @@ func (s *Service) signIn(c *gin.Context) {
 	c.SetCookie("auth_token", token, 3600, "/", s.config.CoockieHost, false, true)
 
 	s.app.CloseConnection()
-	c.IndentedJSON(http.StatusOK, nil)
+
+	dtoSuccess := DtoSuccess{true}
+	c.IndentedJSON(http.StatusOK, dtoSuccess)
 }
 
 func (s *Service) createDict(c *gin.Context) {
@@ -149,6 +169,12 @@ func (s *Service) createDict(c *gin.Context) {
 		return
 	}
 
+	newDict.Name = strings.TrimSpace(newDict.Name)
+	if utf8.RuneCountInString(newDict.Name) == 0 {
+		s.respError(c, http.StatusBadRequest, "Empty name")
+		return
+	}
+
 	increment, _ := s.app.Increment(KeyDictIncrement(user_id))
 	newDict.ID = increment
 
@@ -157,7 +183,7 @@ func (s *Service) createDict(c *gin.Context) {
 	s.app.Set(KeyDict(user_id, increment), string(dict_json))
 	s.app.Push(KeyDictList(user_id), KeyDict(user_id, increment))
 
-	c.IndentedJSON(http.StatusOK, "okey")
+	c.IndentedJSON(http.StatusOK, newDict)
 	s.app.CloseConnection()
 }
 
@@ -236,6 +262,14 @@ func (s *Service) addWord(c *gin.Context) {
 		fmt.Println(2)
 		return
 	}
+
+	newWord.First = strings.TrimSpace(newWord.First)
+	newWord.Second = strings.TrimSpace(newWord.Second)
+	if utf8.RuneCountInString(newWord.First) == 0 || utf8.RuneCountInString(newWord.Second) == 0 {
+		s.respError(c, http.StatusBadRequest, "Empty word")
+		return
+	}
+
 	increment, _ := s.app.Increment(KeyWordIncrement(user_id, dict_id))
 	newWord.ID = increment
 	wordJson, _ := json.Marshal(newWord)
@@ -243,7 +277,7 @@ func (s *Service) addWord(c *gin.Context) {
 	s.app.Push(KeyWordList(user_id, dict_id), KeyWord(user_id, dict_id, increment))
 
 	s.app.CloseConnection()
-	c.IndentedJSON(http.StatusOK, "okey")
+	c.IndentedJSON(http.StatusOK, newWord)
 }
 
 func (s *Service) respError(c *gin.Context, code int, message string) {

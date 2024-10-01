@@ -28,3 +28,7 @@ type DtoError struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }
+
+type DtoSuccess struct {
+	Success bool `json:"success"`
+}
