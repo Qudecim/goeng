@@ -263,7 +263,7 @@ func (s *Service) deleteDict(c *gin.Context) {
 		s.app.Delete(KeyWord(user_id, dict_id, word_id))
 	}
 
-	s.app.Remove(KeyUser(user_id), KeyDict(user_id, dict_id))
+	s.app.Remove(KeyDictList(user_id), KeyDict(user_id, dict_id))
 	s.app.Delete(KeyDict(user_id, dict_id))
 
 	s.app.CloseConnection()
@@ -330,7 +330,9 @@ func (s *Service) deleteWord(c *gin.Context) {
 		return
 	}
 
-	s.app.Remove(KeyDict(user_id, dict_id), KeyWord(user_id, dict_id, word_id))
+	fmt.Println(dict_id, word_id, user_id)
+
+	s.app.Remove(KeyWordList(user_id, dict_id), KeyWord(user_id, dict_id, word_id))
 	s.app.Delete(KeyWord(user_id, dict_id, word_id))
 
 	s.app.CloseConnection()
