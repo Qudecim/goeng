@@ -47,8 +47,10 @@ func Main() {
 		api.GET("/dict", service.getDictList)
 		api.POST("/dict", service.createDict)
 		api.GET("/dict/:id", service.getDict)
+		api.DELETE("/dict/:id", service.deleteDict)
 
 		api.POST("/word/:id", service.addWord)
+		api.DELETE("/word/:dict_id/:word_id", service.deleteWord)
 	}
 
 	if config.Ssl {

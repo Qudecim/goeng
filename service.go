@@ -242,6 +242,35 @@ func (s *Service) getDictList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, dicts)
 }
 
+func (s *Service) deleteDict(c *gin.Context) {
+	s.app.NewConnection()
+
+	dict_id, err := strconv.ParseInt(c.Param("dict_id"), 10, 64)
+	if err != nil {
+		fmt.Println(1)
+		return
+	}
+
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
+
+	items, _ := s.app.Pull(KeyWordList(user_id, dict_id))
+	for key, _ := range items {
+		word_id, _ := strconv.ParseInt(key, 10, 64)
+		s.app.Delete(KeyWord(user_id, dict_id, word_id))
+	}
+
+	s.app.Remove(KeyUser(user_id), KeyDict(user_id, dict_id))
+	s.app.Delete(KeyDict(user_id, dict_id))
+
+	s.app.CloseConnection()
+	dtoSuccess := DtoSuccess{true}
+	c.IndentedJSON(http.StatusOK, dtoSuccess)
+}
+
 func (s *Service) addWord(c *gin.Context) {
 	s.app.NewConnection()
 
@@ -278,6 +307,35 @@ func (s *Service) addWord(c *gin.Context) {
 
 	s.app.CloseConnection()
 	c.IndentedJSON(http.StatusOK, newWord)
+}
+
+func (s *Service) deleteWord(c *gin.Context) {
+	s.app.NewConnection()
+
+	dict_id, err := strconv.ParseInt(c.Param("dict_id"), 10, 64)
+	if err != nil {
+		fmt.Println(1)
+		return
+	}
+
+	word_id, err := strconv.ParseInt(c.Param("word_id"), 10, 64)
+	if err != nil {
+		fmt.Println(1)
+		return
+	}
+
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
+
+	s.app.Remove(KeyDict(user_id, dict_id), KeyWord(user_id, dict_id, word_id))
+	s.app.Delete(KeyWord(user_id, dict_id, word_id))
+
+	s.app.CloseConnection()
+	dtoSuccess := DtoSuccess{true}
+	c.IndentedJSON(http.StatusOK, dtoSuccess)
 }
 
 func (s *Service) respError(c *gin.Context, code int, message string) {

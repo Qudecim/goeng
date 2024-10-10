@@ -1,5 +1,9 @@
 github.com/Qudecim/ipmc v0.0.0-20240822210502-0ac386c68482 h1:8mU3pAaCLNtDuBNDZu9LFVrNBvucuN7g5JzpIwl4wxk=
 github.com/Qudecim/ipmc v0.0.0-20240822210502-0ac386c68482/go.mod h1:BhdjQzg7uVrO+mAtvN+MBRdJXMzaGt88F+m6pd8Ph5U=
+github.com/Qudecim/ipmc v0.0.0-20241006211707-486236d20441 h1:r1ODvAzQ1kiEpszp5WEr4ge4i8SAtUt3GLh88WsFNp0=
+github.com/Qudecim/ipmc v0.0.0-20241006211707-486236d20441/go.mod h1:BhdjQzg7uVrO+mAtvN+MBRdJXMzaGt88F+m6pd8Ph5U=
+github.com/Qudecim/ipmc v0.0.1 h1:1PFR5W4v/br1bzfLT6FEZJxvcwRcAiSuCfmveIbjDz0=
+github.com/Qudecim/ipmc v0.0.1/go.mod h1:BhdjQzg7uVrO+mAtvN+MBRdJXMzaGt88F+m6pd8Ph5U=
 github.com/bytedance/sonic v1.11.6 h1:oUp34TzMlL+OY1OUWxHqsdkgC/Zfc85zGqw9siXjrc0=
 github.com/bytedance/sonic v1.11.6/go.mod h1:LysEHSvpvDySVdC2f87zGWf6CIKJcAvqab1ZaiQtds4=
 github.com/bytedance/sonic/loader v0.1.1 h1:c+e5Pt1k/cy5wMveRDyk2X4B9hF4g7an8N3zCYjJFNM=
