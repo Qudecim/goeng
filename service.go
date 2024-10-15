@@ -175,6 +175,12 @@ func (s *Service) createDict(c *gin.Context) {
 		return
 	}
 
+	count, _ := s.app.Count(KeyDictList(user_id))
+	if count > 500 {
+		s.respError(c, http.StatusBadRequest, "Count dicts could't be more than 500")
+		return
+	}
+
 	increment, _ := s.app.Increment(KeyDictIncrement(user_id))
 	newDict.ID = increment
 
@@ -296,6 +302,12 @@ func (s *Service) addWord(c *gin.Context) {
 	newWord.Second = strings.TrimSpace(newWord.Second)
 	if utf8.RuneCountInString(newWord.First) == 0 || utf8.RuneCountInString(newWord.Second) == 0 {
 		s.respError(c, http.StatusBadRequest, "Empty word")
+		return
+	}
+
+	count, _ := s.app.Count(KeyWordList(user_id, dict_id))
+	if count > 100 {
+		s.respError(c, http.StatusBadRequest, "Count words could't be more than 100")
 		return
 	}
 
