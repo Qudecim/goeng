@@ -51,6 +51,9 @@ func Main() {
 
 		api.POST("/word/:id", service.addWord)
 		api.DELETE("/word/:dict_id/:word_id", service.deleteWord)
+
+		api.GET("/knownword/:dict_id/:word_id", service.knownWord)
+		api.GET("/unknownword/:dict_id/:word_id", service.unknownWord)
 	}
 
 	if config.Ssl {
