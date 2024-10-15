@@ -342,10 +342,72 @@ func (s *Service) deleteWord(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(dict_id, word_id, user_id)
-
 	s.app.Remove(KeyWordList(user_id, dict_id), KeyWord(user_id, dict_id, word_id))
 	s.app.Delete(KeyWord(user_id, dict_id, word_id))
+
+	s.app.CloseConnection()
+	dtoSuccess := DtoSuccess{true}
+	c.IndentedJSON(http.StatusOK, dtoSuccess)
+}
+
+func (s *Service) knownWord(c *gin.Context) {
+	s.app.NewConnection()
+
+	dict_id, err := strconv.ParseInt(c.Param("dict_id"), 10, 64)
+	if err != nil {
+		fmt.Println(1)
+		return
+	}
+
+	word_id, err := strconv.ParseInt(c.Param("word_id"), 10, 64)
+	if err != nil {
+		fmt.Println(1)
+		return
+	}
+
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
+
+	value, exist := s.app.Get(KeyKnownWord(user_id, dict_id, word_id))
+	count_know := 0
+	if exist {
+		count_know, _ = strconv.Atoi(value)
+	}
+	count_know++
+	s.app.Set(KeyKnownWord(user_id, dict_id, word_id), strconv.Itoa(count_know))
+
+	// TODO: if count_know more than 10, move this word in knownDictt
+
+	s.app.CloseConnection()
+	dtoSuccess := DtoSuccess{true}
+	c.IndentedJSON(http.StatusOK, dtoSuccess)
+}
+
+func (s *Service) unknownWord(c *gin.Context) {
+	s.app.NewConnection()
+
+	dict_id, err := strconv.ParseInt(c.Param("dict_id"), 10, 64)
+	if err != nil {
+		fmt.Println(1)
+		return
+	}
+
+	word_id, err := strconv.ParseInt(c.Param("word_id"), 10, 64)
+	if err != nil {
+		fmt.Println(1)
+		return
+	}
+
+	user_id, err := s.getUserId(c)
+	if err != nil {
+		s.respError(c, http.StatusUnauthorized, "Auth fail")
+		return
+	}
+
+	s.app.Set(KeyKnownWord(user_id, dict_id, word_id), strconv.Itoa(0))
 
 	s.app.CloseConnection()
 	dtoSuccess := DtoSuccess{true}

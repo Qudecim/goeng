@@ -37,3 +37,7 @@ func KeyWord(user_id int64, dict_id int64, word_id int64) string {
 func KeyWordList(user_id int64, dict_id int64) string {
 	return "word_list_" + strconv.FormatInt(user_id, 10) + "_" + strconv.FormatInt(dict_id, 10)
 }
+
+func KeyKnownWord(user_id int64, dict_id int64, word_id int64) string {
+	return "word_know_" + strconv.FormatInt(user_id, 10) + "_" + strconv.FormatInt(dict_id, 10) + "_" + strconv.FormatInt(word_id, 10)
+}
