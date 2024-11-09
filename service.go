@@ -264,7 +264,7 @@ func (s *Service) deleteDict(c *gin.Context) {
 	}
 
 	items, _ := s.app.Pull(KeyWordList(user_id, dict_id))
-	for key, _ := range items {
+	for key := range items {
 		word_id, _ := strconv.ParseInt(key, 10, 64)
 		s.app.Delete(KeyWord(user_id, dict_id, word_id))
 	}
