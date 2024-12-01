@@ -26,7 +26,7 @@ func Main() {
 
 	service := newService(config)
 
-	router := gin.Default()
+	router := gin.New()
 
 	router.Static("/assets", "./static/assets")
 

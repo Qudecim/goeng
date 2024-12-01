@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	tokenTTL = 12 * time.Hour
+	tokenTTL = 30 * 24 * time.Hour
 )
 
 type tokenClaims struct {
